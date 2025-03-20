@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Notes App{% endblock %}
+
+{% block content %}
+<div class="flex justify-center items-center py-8">
+    <div class="w-full max-w-lg">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="text-2xl font-bold text-center mb-6">Create Account</h2>
+                <form id="registerForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="firstName" class="block text-sm font-medium mb-1">First Name</label>
+                            <input type="text" id="firstName" required class="input-field w-full">
+                        </div>
+                        <div>
+                            <label for="lastName" class="block text-sm font-medium mb-1">Last Name</label>
+                            <input type="text" id="lastName" required class="input-field w-full">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium mb-1">Email</label>
+                        <input type="email" id="email" required class="input-field w-full">
+                    </div>
+                    <div>
+                        <label for="birthdate" class="block text-sm font-medium mb-1">Birthdate</label>
+                        <input type="date" id="birthdate" class="input-field w-full">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium mb-1">Password</label>
+                        <input type="password" id="password" required class="input-field w-full">
+                    </div>
+                    <button type="submit" class="btn-primary w-full">Create Account</button>
+                </form>
+                <div class="mt-4 text-center text-sm">
+                    <p>Already have an account? <a href="/login" class="text-indigo-400 hover:text-indigo-300">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const userData = {
+            email: document.getElementById('email').value,
+            first_name: document.getElementById('firstName').value,
+            last_name: document.getElementById('lastName').value,
+            birthdate: document.getElementById('birthdate').value || null,
+            password: document.getElementById('password').value
+        };
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData)
+            });
+
+            if (response.ok) {
+                alert('Registration successful! Please login.');
+                window.location.href = '/login';
+            } else {
+                const error = await response.json();
+                alert(error.detail || 'Registration failed. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Registration failed. Please try again.');
+        }
+    });
+});
+</script>
+{% endblock %} 

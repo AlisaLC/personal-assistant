@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Notes App{% endblock %}
+
+{% block nav_items %}
+<a href="/notes" class="nav-link">My Notes</a>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="card">
+        <div class="card-body">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold">My Profile</h2>
+                <button id="logoutBtn" class="btn-secondary">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                </button>
+            </div>
+            
+            <form id="profileForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="email" class="block text-sm font-medium mb-1">Email</label>
+                        <input type="email" id="email" class="input-field w-full opacity-75" readonly>
+                    </div>
+                    <div>
+                        <label for="birthdate" class="block text-sm font-medium mb-1">Birthdate</label>
+                        <input type="date" id="birthdate" class="input-field w-full">
+                    </div>
+                    <div>
+                        <label for="firstName" class="block text-sm font-medium mb-1">First Name</label>
+                        <input type="text" id="firstName" class="input-field w-full" required>
+                    </div>
+                    <div>
+                        <label for="lastName" class="block text-sm font-medium mb-1">Last Name</label>
+                        <input type="text" id="lastName" class="input-field w-full" required>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-700 pt-6 mt-6">
+                    <h3 class="text-lg font-semibold mb-4">Change Password</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="newPassword" class="block text-sm font-medium mb-1">New Password</label>
+                            <input type="password" id="newPassword" class="input-field w-full" 
+                                placeholder="Leave blank to keep current password">
+                        </div>
+                        <div>
+                            <label for="confirmPassword" class="block text-sm font-medium mb-1">Confirm New Password</label>
+                            <input type="password" id="confirmPassword" class="input-field w-full">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-4 pt-6">
+                    <button type="button" onclick="window.location.href='/notes'" class="btn-secondary">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Notes
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load user data
+    loadUserProfile();
+    
+    // Setup form submission
+    document.getElementById('profileForm').addEventListener('submit', handleProfileUpdate);
+    
+    // Setup logout
+    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+});
+
+async function loadUserProfile() {
+    try {
+        const response = await fetch('/api/profile', {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            document.getElementById('email').value = user.email;
+            document.getElementById('firstName').value = user.first_name;
+            document.getElementById('lastName').value = user.last_name;
+            if (user.birthdate) {
+                document.getElementById('birthdate').value = user.birthdate.split('T')[0];
+            }
+        } else {
+            window.location.href = '/login';
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        alert('Error loading profile. Please try again.');
+    }
+}
+
+async function handleProfileUpdate(e) {
+    e.preventDefault();
+    
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (newPassword && newPassword !== confirmPassword) {
+        alert('New passwords do not match');
+        return;
+    }
+    
+    const userData = {
+        first_name: document.getElementById('firstName').value,
+        last_name: document.getElementById('lastName').value,
+        birthdate: document.getElementById('birthdate').value || null
+    };
+    
+    if (newPassword) {
+        userData.password = newPassword;
+    }
+    
+    try {
+        const response = await fetch('/api/profile', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData),
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            alert('Profile updated successfully');
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        } else {
+            const error = await response.json();
+            alert(error.detail || 'Error updating profile. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        alert('Error updating profile. Please try again.');
+    }
+}
+
+async function handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        try {
+            const response = await fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+        }
+    }
+}
+</script>
+{% endblock %} 
