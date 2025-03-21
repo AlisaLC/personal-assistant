@@ -18,6 +18,8 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Add server to known hosts
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
@@ -28,9 +30,13 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          # Copy docker-compose file
-          scp docker-compose.yml $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          # Create necessary directories
+          ssh $SERVER_USER@$SERVER_IP "mkdir -p $DEPLOY_PATH/nginx $DEPLOY_PATH/init-scripts"
 
+          # Copy configuration files
+          scp docker-compose.yml $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp nginx/nginx.conf $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/nginx/
+          
           # Copy application files
           scp -r app $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
           scp -r templates $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
@@ -40,4 +46,4 @@ jobs:
           scp init-scripts/* $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/init-scripts/
 
           # SSH into server and restart containers
-          ssh $SERVER_USER@$SERVER_IP "cd $DEPLOY_PATH && docker-compose pull && docker-compose up -d --build"
+          ssh $SERVER_USER@$SERVER_IP "cd $DEPLOY_PATH && docker-compose down && docker-compose pull && docker-compose up -d --build"
