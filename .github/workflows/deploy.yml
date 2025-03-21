@@ -1,0 +1,43 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          # Copy docker-compose file
+          scp docker-compose.yml $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+
+          # Copy application files
+          scp -r app $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp -r templates $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp -r static $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp requirements.txt $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp Dockerfile $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp init-scripts/* $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/init-scripts/
+
+          # SSH into server and restart containers
+          ssh $SERVER_USER@$SERVER_IP "cd $DEPLOY_PATH && docker-compose pull && docker-compose up -d --build"

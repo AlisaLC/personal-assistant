@@ -1,11 +1,12 @@
 FROM python:3.11-slim
 
-WORKDIR /app
-
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .

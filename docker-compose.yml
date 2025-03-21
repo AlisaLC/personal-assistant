@@ -1,15 +1,31 @@
 version: '3.8'
 
 services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web
+      - openwebui
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   web:
     build: .
-    ports:
-      - "8000:8000"
+    expose:
+      - "${APP_PORT}"
     volumes:
       - .:/app
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${NOTES_DB}
-      - WEBUI_DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${WEBUI_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${NOTES_DB}
+      - WEBUI_DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${WEBUI_DB}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -20,16 +36,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host ${APP_HOST} --port ${APP_PORT} --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${APP_HOST}:${APP_PORT}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   db:
     image: postgres:15
-    ports:
-      - "5432:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=postgres
+      - POSTGRES_PORT=${POSTGRES_PORT}
       - NOTES_DB=${NOTES_DB}
       - WEBUI_DB=${WEBUI_DB}
     volumes:
@@ -37,14 +58,15 @@ services:
       - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
-    ports:
-      - "3000:8080"
+    expose:
+      - "8080"
     environment:
       - ENABLE_OLLAMA_API=False
       - ENABLE_OPENAI_API=True
@@ -54,19 +76,25 @@ services:
       - RAG_EMBEDDING_MODEL=${OPENAI_EMBEDDING_MODEL}
       - DEFAULT_MODELS=${OPENAI_CHAT_MODEL}
       - ENABLE_EVALUATION_ARENA_MODELS=False
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${WEBUI_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${WEBUI_DB}
       - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
       - WEBUI_JWT_SECRET=${WEBUI_JWT_SECRET}
       - WEBUI_JWT_EXPIRES_IN=7d
       - WEBUI_DATABASE_TYPE=postgres
       - WEBUI_DATABASE_HOST=db
-      - WEBUI_DATABASE_PORT=5432
+      - WEBUI_DATABASE_PORT=${POSTGRES_PORT}
       - WEBUI_DATABASE_USER=${POSTGRES_USER}
       - WEBUI_DATABASE_PASSWORD=${POSTGRES_PASSWORD}
       - WEBUI_DATABASE_NAME=${WEBUI_DB}
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 volumes:
   notes_app_db_data: 
