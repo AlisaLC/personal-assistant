@@ -37,7 +37,7 @@ jobs:
 
           # Copy configuration files
           scp -P $SERVER_PORT docker-compose.yml $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
-          scp -P $SERVER_PORT nginx/nginx.conf $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/nginx/
+          scp -P $SERVER_PORT nginx/nginx.conf.template $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/nginx/
           
           # Copy application files
           scp -P $SERVER_PORT -r app $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
