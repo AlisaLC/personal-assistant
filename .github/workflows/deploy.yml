@@ -20,30 +20,30 @@ jobs:
       - name: Add server to known hosts
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -p $SERVER_PORT -H $SERVER_IP >> ~/.ssh/known_hosts
 
       - name: Deploy to server
         env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           # Create necessary directories
-          ssh $SERVER_USER@$SERVER_IP "mkdir -p $DEPLOY_PATH/nginx $DEPLOY_PATH/init-scripts"
+          ssh -p $SERVER_PORT $SERVER_USER@$SERVER_IP "mkdir -p $DEPLOY_PATH/nginx $DEPLOY_PATH/init-scripts"
 
           # Copy configuration files
-          scp docker-compose.yml $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
-          scp nginx/nginx.conf $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/nginx/
+          scp -P $SERVER_PORT docker-compose.yml $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp -P $SERVER_PORT nginx/nginx.conf $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/nginx/
           
           # Copy application files
-          scp -r app $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
-          scp -r templates $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
-          scp -r static $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
-          scp requirements.txt $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
-          scp Dockerfile $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
-          scp init-scripts/* $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/init-scripts/
+          scp -P $SERVER_PORT -r app $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp -P $SERVER_PORT -r templates $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp -P $SERVER_PORT -r static $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp -P $SERVER_PORT requirements.txt $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp -P $SERVER_PORT Dockerfile $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/
+          scp -P $SERVER_PORT -r init-scripts/* $SERVER_USER@$SERVER_IP:$DEPLOY_PATH/init-scripts/
 
           # SSH into server and restart containers
-          ssh $SERVER_USER@$SERVER_IP "cd $DEPLOY_PATH && docker-compose down && docker-compose pull && docker-compose up -d --build"
+          ssh -p $SERVER_PORT $SERVER_USER@$SERVER_IP "cd $DEPLOY_PATH && docker-compose down && docker-compose pull && docker-compose up -d --build"
