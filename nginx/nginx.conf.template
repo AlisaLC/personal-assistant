@@ -32,9 +32,8 @@ http {
         }
 
         # OpenWebUI
-        location /chat {
-            rewrite ^/chat(.*)$ $1 break;
-            proxy_pass http://webui_server;
+        location /chat/ {
+            proxy_pass http://webui_server/;
         }
 
         # Health check
