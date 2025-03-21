@@ -11,6 +11,7 @@ http {
         server openwebui:8080;
     }
 
+    # Main application server
     server {
         listen 80;
         server_name _;
@@ -31,16 +32,33 @@ http {
             proxy_pass http://app_server;
         }
 
-        # OpenWebUI
-        location /chat/ {
-            proxy_pass http://webui_server/;
-        }
-
         # Health check
         location /health {
             access_log off;
             add_header Content-Type text/plain;
             return 200 'healthy';
+        }
+    }
+
+    # Chat subdomain server
+    server {
+        listen 80;
+        server_name chat.*;
+
+        # Proxy headers
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket support
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # OpenWebUI
+        location / {
+            proxy_pass http://webui_server;
         }
     }
 } 

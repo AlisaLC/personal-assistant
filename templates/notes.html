@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupEventListeners() {
     // Chat button click handler
     document.getElementById('openChat').addEventListener('click', function() {
-        window.open('/chat', '_blank');
+        window.open('http://chat.' + window.location.hostname, '_blank');
     });
 
     // New note button click handler
