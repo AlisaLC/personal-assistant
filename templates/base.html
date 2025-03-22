@@ -11,45 +11,25 @@
             background-color: #0f172a;
             color: #e2e8f0;
         }
-        .nav-link {
-            @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
-        }
-        .nav-link:hover {
-            @apply bg-indigo-600 text-white;
-        }
-        .card {
-            @apply bg-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-700;
-        }
-        .card-body {
-            @apply p-8;
-        }
-        .btn-primary {
-            @apply bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-all duration-200 font-medium;
-        }
-        .btn-secondary {
-            @apply bg-slate-700 text-white px-6 py-3 rounded-lg hover:bg-slate-600 transition-all duration-200 font-medium;
-        }
-        .input-field {
-            @apply bg-slate-700 border-slate-600 text-slate-100 rounded-lg px-4 py-3 w-full focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200;
-        }
-        .modal {
-            @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4;
-        }
-        .modal-content {
-            @apply bg-slate-800 rounded-xl shadow-2xl max-w-md w-full p-8 border border-slate-700;
-        }
     </style>
 </head>
 <body class="min-h-screen">
-    <nav class="bg-slate-900 border-b border-slate-800">
+    <nav class="bg-gray-200 border-b border-gray-400">
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="/" class="text-2xl font-bold text-white hover:text-indigo-400 transition-colors duration-200">Mamad</a>
+                    <a href="/" class="text-2xl font-bold text-gray-800 hover:text-indigo-600 transition-colors duration-200">Mamad</a>
                 </div>
                 <div class="flex items-center">
                     {% block nav_items %}
-                    <a href="/login" class="nav-link text-white hover:bg-indigo-600">Login</a>
+                    <div id="navItems">
+                        <a href="/login" id="loginBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200 text-lg">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Login
+                        </a>
+                        <a href="/notes" id="notesBtn" class="hidden bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200 text-lg">
+                            <i class="fas fa-sticky-note mr-2"></i>Notes
+                        </a>
+                    </div>
                     {% endblock %}
                 </div>
             </div>
@@ -61,6 +41,29 @@
     </main>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Check authentication status from server
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const response = await fetch('/api/me', {
+                    credentials: 'include'
+                });
+                
+                const loginBtn = document.getElementById('loginBtn');
+                const notesBtn = document.getElementById('notesBtn');
+                
+                if (response.ok) {
+                    loginBtn.classList.add('hidden');
+                    notesBtn.classList.remove('hidden');
+                } else {
+                    loginBtn.classList.remove('hidden');
+                    notesBtn.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+            }
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html> 

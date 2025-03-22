@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Response, BackgroundTasks, Form
+from fastapi import APIRouter, HTTPException, status, Response, BackgroundTasks, Form, Depends, Cookie
 from sqlmodel import Session, select
 from datetime import timedelta
 
@@ -9,6 +9,7 @@ from ..auth import (
     verify_password,
     create_access_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    get_current_user,
 )
 from ..services import webui
 
@@ -62,3 +63,7 @@ async def login(response: Response, email: str = Form(), password: str = Form())
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
         )
         return {"access_token": access_token, "token_type": "bearer"}
+
+@auth_router.get("/api/me", response_model=models.UserRead)
+async def get_current_user_info(current_user: models.User = Depends(get_current_user)):
+    return current_user
