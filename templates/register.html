@@ -1,69 +1,44 @@
 {% extends "base.html" %}
 
-{% block title %}Register - Notes App{% endblock %}
+{% block title %}Register - Mamad{% endblock %}
 
 {% block content %}
-<div class="flex justify-center items-center py-8">
+<div class="flex justify-center items-center min-h-[80vh] py-8">
     <div class="w-full max-w-lg">
         <div class="card">
             <div class="card-body">
-                <div class="text-center mb-8">
-                    <i class="fas fa-user-plus text-5xl text-indigo-400 mb-4"></i>
-                    <h2 class="text-3xl font-bold text-white">Create Account</h2>
-                    <p class="text-gray-400 mt-2">Join us and start organizing your notes</p>
-                </div>
+                <h2 class="text-3xl font-bold text-center mb-4 text-white">Create Account</h2>
+                <p class="text-center text-slate-400 mb-8">Join Mamad to start managing your notes</p>
                 <form id="registerForm" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label for="firstName" class="form-label">First Name</label>
-                            <div class="relative">
-                                <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                                <input type="text" id="firstName" required class="input-field pl-10" placeholder="Enter first name">
-                            </div>
+                            <label for="firstName" class="block text-sm font-medium text-slate-300 mb-2">First Name</label>
+                            <input type="text" id="firstName" required class="input-field" placeholder="Enter first name">
                         </div>
                         <div>
-                            <label for="lastName" class="form-label">Last Name</label>
-                            <div class="relative">
-                                <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                                <input type="text" id="lastName" required class="input-field pl-10" placeholder="Enter last name">
-                            </div>
+                            <label for="lastName" class="block text-sm font-medium text-slate-300 mb-2">Last Name</label>
+                            <input type="text" id="lastName" required class="input-field" placeholder="Enter last name">
                         </div>
                     </div>
                     <div>
-                        <label for="email" class="form-label">Email Address</label>
-                        <div class="relative">
-                            <i class="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                            <input type="email" id="email" required class="input-field pl-10" placeholder="Enter your email">
-                        </div>
+                        <label for="email" class="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                        <input type="email" id="email" required class="input-field" placeholder="Enter your email">
                     </div>
                     <div>
-                        <label for="birthdate" class="form-label">Birthdate</label>
-                        <div class="relative">
-                            <i class="fas fa-calendar absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                            <input type="date" id="birthdate" class="input-field pl-10">
-                        </div>
+                        <label for="birthdate" class="block text-sm font-medium text-slate-300 mb-2">Birthdate</label>
+                        <input type="date" id="birthdate" class="input-field">
                     </div>
                     <div>
-                        <label for="password" class="form-label">Password</label>
-                        <div class="relative">
-                            <i class="fas fa-lock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                            <input type="password" id="password" required class="input-field pl-10" placeholder="Create a password">
-                        </div>
+                        <label for="password" class="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                        <input type="password" id="password" required class="input-field" placeholder="Create a password">
                     </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="terms" required class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-600 rounded">
-                        <label for="terms" class="ml-2 block text-sm text-gray-300">
-                            I agree to the <a href="#" class="text-indigo-400 hover:text-indigo-300">Terms of Service</a> and 
-                            <a href="#" class="text-indigo-400 hover:text-indigo-300">Privacy Policy</a>
-                        </label>
-                    </div>
-                    <button type="submit" class="btn-primary w-full flex items-center justify-center">
-                        <i class="fas fa-user-plus mr-2"></i> Create Account
+                    <button type="submit" class="btn-primary w-full mt-8">
+                        <i class="fas fa-user-plus mr-2"></i>Create Account
                     </button>
                 </form>
                 <div class="mt-8 text-center">
-                    <p class="text-gray-400">Already have an account? 
-                        <a href="/login" class="text-indigo-400 hover:text-indigo-300 font-medium">Sign in here</a>
+                    <p class="text-slate-400">Already have an account? 
+                        <a href="/login" class="text-indigo-400 hover:text-indigo-300 font-medium">Sign in</a>
                     </p>
                 </div>
             </div>
@@ -75,15 +50,8 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('registerForm');
-    const submitButton = form.querySelector('button[type="submit"]');
-    
-    form.addEventListener('submit', async function(e) {
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        // Disable button and show loading state
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating Account...';
         
         const userData = {
             email: document.getElementById('email').value,
@@ -108,16 +76,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const error = await response.json();
                 alert(error.detail || 'Registration failed. Please try again.');
-                // Reset button state
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<i class="fas fa-user-plus mr-2"></i> Create Account';
             }
         } catch (error) {
             console.error('Error:', error);
             alert('Registration failed. Please try again.');
-            // Reset button state
-            submitButton.disabled = false;
-            submitButton.innerHTML = '<i class="fas fa-user-plus mr-2"></i> Create Account';
         }
     });
 });
