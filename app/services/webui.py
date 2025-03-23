@@ -30,7 +30,6 @@ async def create_webui_user(email: str, password: str, name: str) -> bool:
                 name=name,
                 role="user",
                 profile_image_url="/user.png",
-                oauth_sub="",
                 last_active_at=int(datetime.now().timestamp()),
                 updated_at=int(datetime.now().timestamp()),
                 created_at=int(datetime.now().timestamp())

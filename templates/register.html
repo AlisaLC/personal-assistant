@@ -3,44 +3,56 @@
 {% block title %}Register - Mamad{% endblock %}
 
 {% block content %}
-<div class="flex justify-center items-center min-h-[80vh] py-8">
-    <div class="w-full max-w-lg">
-        <div class="card">
-            <div class="card-body">
-                <h2 class="text-3xl font-bold text-center mb-4 text-white">Create Account</h2>
-                <p class="text-center text-slate-400 mb-8">Join Mamad to start managing your notes</p>
-                <form id="registerForm" class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="firstName" class="block text-sm font-medium text-slate-300 mb-2">First Name</label>
-                            <input type="text" id="firstName" required class="input-field" placeholder="Enter first name">
-                        </div>
-                        <div>
-                            <label for="lastName" class="block text-sm font-medium text-slate-300 mb-2">Last Name</label>
-                            <input type="text" id="lastName" required class="input-field" placeholder="Enter last name">
-                        </div>
+<div class="flex justify-center items-center min-h-[80vh]">
+    <div class="w-full max-w-md">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-white mb-4">Create Account</h2>
+                <p class="text-gray-300">Join Mamad to start managing your notes</p>
+            </div>
+            <form id="registerForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="firstName" class="block text-sm font-medium text-gray-300 mb-2">First Name</label>
+                        <input type="text" id="firstName" required 
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white placeholder-gray-400"
+                            placeholder="Enter first name">
                     </div>
                     <div>
-                        <label for="email" class="block text-sm font-medium text-slate-300 mb-2">Email</label>
-                        <input type="email" id="email" required class="input-field" placeholder="Enter your email">
+                        <label for="lastName" class="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
+                        <input type="text" id="lastName" required 
+                            class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white placeholder-gray-400"
+                            placeholder="Enter last name">
                     </div>
-                    <div>
-                        <label for="birthdate" class="block text-sm font-medium text-slate-300 mb-2">Birthdate</label>
-                        <input type="date" id="birthdate" class="input-field">
-                    </div>
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-slate-300 mb-2">Password</label>
-                        <input type="password" id="password" required class="input-field" placeholder="Create a password">
-                    </div>
-                    <button type="submit" class="btn-primary w-full mt-8">
-                        <i class="fas fa-user-plus mr-2"></i>Create Account
-                    </button>
-                </form>
-                <div class="mt-8 text-center">
-                    <p class="text-slate-400">Already have an account? 
-                        <a href="/login" class="text-indigo-400 hover:text-indigo-300 font-medium">Sign in</a>
-                    </p>
                 </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input type="email" id="email" required 
+                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white placeholder-gray-400"
+                        placeholder="Enter your email">
+                </div>
+                <div>
+                    <label for="birthdate" class="block text-sm font-medium text-gray-300 mb-2">Birthdate</label>
+                    <input type="date" id="birthdate" 
+                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input type="password" id="password" required 
+                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white placeholder-gray-400"
+                        placeholder="Create a password">
+                </div>
+                <button type="submit" 
+                    class="w-full bg-indigo-600 text-white py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium text-lg flex items-center justify-center">
+                    <i class="fas fa-user-plus mr-2"></i>Create Account
+                </button>
+            </form>
+            <div class="mt-8 text-center">
+                <p class="text-gray-300">Already have an account? 
+                    <a href="/login" class="ml-2 inline-block bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </a>
+                </p>
             </div>
         </div>
     </div>
@@ -49,39 +61,52 @@
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('registerForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const response = await fetch('/api/me', {
+            credentials: 'include'
+        });
         
-        const userData = {
-            email: document.getElementById('email').value,
-            first_name: document.getElementById('firstName').value,
-            last_name: document.getElementById('lastName').value,
-            birthdate: document.getElementById('birthdate').value || null,
-            password: document.getElementById('password').value
-        };
-
-        try {
-            const response = await fetch('/api/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(userData)
-            });
-
-            if (response.ok) {
-                alert('Registration successful! Please login.');
-                window.location.href = '/login';
-            } else {
-                const error = await response.json();
-                alert(error.detail || 'Registration failed. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Registration failed. Please try again.');
+        if (response.ok) {
+            window.location.href = '/notes';
+            return;
         }
-    });
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userData = {
+                email: document.getElementById('email').value,
+                first_name: document.getElementById('firstName').value,
+                last_name: document.getElementById('lastName').value,
+                birthdate: document.getElementById('birthdate').value || null,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    alert('Registration successful! Please login.');
+                    window.location.href = '/login';
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Registration failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Registration failed. Please try again.');
+            }
+        });
+    } catch (error) {
+        console.error('Error checking auth status:', error);
+    }
 });
 </script>
 {% endblock %} 

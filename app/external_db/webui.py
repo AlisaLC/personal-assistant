@@ -22,7 +22,6 @@ class WebUIUser(WebUIBase, SQLModel, table=True):
     email: str = Field(unique=True, index=True)
     role: str
     profile_image_url: str
-    oauth_sub: str
     last_active_at: int
     updated_at: int
     created_at: int 
