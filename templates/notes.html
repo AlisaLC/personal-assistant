@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 
 {% block nav_items %}
-<a href="/profile" class="nav-link">Profile</a>
+<div id="navItems">
+    <a href="/profile" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200 text-lg">
+        <i class="fas fa-user mr-2"></i>Profile
+    </a>
+</div>
 {% endblock %}
 
 {% block content %}

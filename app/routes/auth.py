@@ -67,3 +67,8 @@ async def login(response: Response, email: str = Form(), password: str = Form())
 @auth_router.get("/api/me", response_model=models.UserRead)
 async def get_current_user_info(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+@auth_router.post("/api/logout")
+async def logout(response: Response):
+    response.delete_cookie(key="token")
+    return {"message": "Successfully logged out"}

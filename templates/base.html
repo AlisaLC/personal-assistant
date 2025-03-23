@@ -26,9 +26,17 @@
                         <a href="/login" id="loginBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200 text-lg">
                             <i class="fas fa-sign-in-alt mr-2"></i>Login
                         </a>
-                        <a href="/notes" id="notesBtn" class="hidden bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200 text-lg">
-                            <i class="fas fa-sticky-note mr-2"></i>Notes
-                        </a>
+                        <div id="authButtons" class="hidden flex items-center space-x-4">
+                            <a href="/notes" id="notesBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200 text-lg">
+                                <i class="fas fa-sticky-note mr-2"></i>Notes
+                            </a>
+                            <a href="/profile" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors duration-200 text-lg">
+                                <i class="fas fa-user mr-2"></i>Profile
+                            </a>
+                            <button id="logoutBtn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors duration-200 text-lg">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                            </button>
+                        </div>
                     </div>
                     {% endblock %}
                 </div>
@@ -50,15 +58,34 @@
                 });
                 
                 const loginBtn = document.getElementById('loginBtn');
-                const notesBtn = document.getElementById('notesBtn');
+                const authButtons = document.getElementById('authButtons');
                 
                 if (response.ok) {
                     loginBtn.classList.add('hidden');
-                    notesBtn.classList.remove('hidden');
+                    authButtons.classList.remove('hidden');
                 } else {
                     loginBtn.classList.remove('hidden');
-                    notesBtn.classList.add('hidden');
+                    authButtons.classList.add('hidden');
                 }
+
+                // Add logout functionality
+                document.getElementById('logoutBtn').addEventListener('click', async function() {
+                    try {
+                        const response = await fetch('/api/logout', {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        
+                        if (response.ok) {
+                            window.location.href = '/login';
+                        } else {
+                            console.error('Logout failed');
+                        }
+                    } catch (error) {
+                        console.error('Error during logout:', error);
+                        window.location.href = '/login';
+                    }
+                });
             } catch (error) {
                 console.error('Error checking auth status:', error);
             }
