@@ -10,15 +10,14 @@ client = openai.Client(api_key=os.getenv("OPENAI_API_KEY"),
                        base_url=os.getenv("OPENAI_API_BASE_URL"))
 
 
-def normalize_embedding(embedding: list[float]) -> list[float]:
-    return embedding / np.linalg.norm(embedding)
-
-
 def get_embedding(text: str) -> list[float]:
     response = client.embeddings.create(
-        input=text, model=OPENAI_EMBEDDING_MODEL)
+        input=text,
+        model=OPENAI_EMBEDDING_MODEL,
+    )
     embedding = response.data[0].embedding
-    return normalize_embedding(embedding)
+    embedding = embedding / np.linalg.norm(embedding)
+    return embedding.tolist()
 
 
 def get_chat_completion(messages: list[dict]) -> str:

@@ -18,24 +18,38 @@ class FaissIndexManager:
         self.indices = {}
 
     def build_index(self, key: str, entries: list[IndexEntry]):
+        if len(entries) == 0:
+            self.indices[key] = (None, [])
+            return
+
         index = faiss.IndexFlatIP(DIMENSIONS)
         id_map = []
 
         embeddings = np.array(
             [entry.embedding for entry in entries], dtype='float32')
-        faiss.normalize_L2(embeddings)
+        embeddings = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
 
         index.add(embeddings)
         id_map = [entry.id for entry in entries]
         self.indices[key] = (index, id_map)
 
-    def query_index(self, key: str, query_embedding: list[float], min_results: int = 2, max_results: int = 10, min_similarity: float = 0.5) -> list[int]:
+    def query_index(
+            self,
+            key: str,
+            query_embedding: list[float],
+            min_results: int = 2,
+            max_results: int = 10,
+            min_similarity: float = 0.5,
+        ) -> list[int]:
         if key not in self.indices:
             raise ValueError(f"Index for key {key} not found")
 
         index, id_map = self.indices[key]
+        if index is None:
+            return []
+
         query_vector = np.array([query_embedding], dtype='float32')
-        faiss.normalize_L2(query_vector)
+        query_vector = query_vector / np.linalg.norm(query_vector)
 
         scores, indices = index.search(query_vector, max_results)
         results = []
@@ -76,8 +90,21 @@ class NoteSearchService:
                 IndexEntry(id=id, embedding=embedding) for id, embedding in results
             ])
 
-    def search(self, user_id: int, query_embedding: list[float], min_results: int = 2, max_results: int = 10, min_similarity: float = 0.5) -> list[int]:
-        return index_manager.query_index(f"notes_{user_id}", query_embedding, min_results, max_results, min_similarity)
+    def search(
+            self,
+            user_id: int,
+            query_embedding: list[float],
+            min_results: int = 2,
+            max_results: int = 10,
+            min_similarity: float = 0.5,
+        ) -> list[int]:
+        return index_manager.query_index(
+            f"notes_{user_id}",
+            query_embedding,
+            min_results,
+            max_results,
+            min_similarity,
+        )
 
 
 search_service = NoteSearchService()

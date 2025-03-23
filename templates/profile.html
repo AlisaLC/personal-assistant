@@ -86,10 +86,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        // Load user data
         loadUserProfile();
         
-        // Setup form submission
         document.getElementById('profileForm').addEventListener('submit', handleProfileUpdate);
     } catch (error) {
         console.error('Error checking auth status:', error);
