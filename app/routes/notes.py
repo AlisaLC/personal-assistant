@@ -81,9 +81,10 @@ def create_note(
         session.add(db_note)
         session.commit()
         session.refresh(db_note)
-        background_tasks.add_task(update_note_embedding, db_note.id)
-        background_tasks.add_task(update_note_summary, db_note.id, note.text)
-        return db_note
+
+    background_tasks.add_task(update_note_embedding, db_note.id)
+    background_tasks.add_task(update_note_summary, db_note.id, note.text)
+    return db_note
 
 
 def get_note(session: Session, note_id: int, user_id: int):
@@ -113,9 +114,10 @@ def update_note(
         db_note.updated_at = datetime.now(UTC)
         session.commit()
         session.refresh(db_note)
-        background_tasks.add_task(update_note_embedding, db_note.id)
-        background_tasks.add_task(update_note_summary, db_note.id, note.text)
-        return db_note
+
+    background_tasks.add_task(update_note_embedding, db_note.id)
+    background_tasks.add_task(update_note_summary, db_note.id, note.text)
+    return db_note
 
 
 @notes_router.delete("/api/notes/{note_id}")
@@ -128,8 +130,9 @@ def delete_note(
         db_note = get_note(session, note_id, current_user.id)
         session.delete(db_note)
         session.commit()
-        background_tasks.add_task(search_service.update_user_index, current_user.id)
-        return {"message": "Note deleted successfully"}
+
+    background_tasks.add_task(search_service.update_user_index, current_user.id)
+    return {"message": "Note deleted successfully"}
 
 
 @notes_router.get("/api/notes/search/", response_model=List[models.NoteRead])
