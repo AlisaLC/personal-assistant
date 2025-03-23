@@ -1,11 +1,11 @@
-import annoy
+import faiss
+import numpy as np
 from pydantic import BaseModel
 from sqlmodel import Session, select
 from ..models import Note
 from ..database import engine
 
 DIMENSIONS = 3072
-TREE_COUNT = 10
 
 
 class IndexEntry(BaseModel):
@@ -13,26 +13,41 @@ class IndexEntry(BaseModel):
     embedding: list[float]
 
 
-class AnnoyIndexManager:
+class FaissIndexManager:
     def __init__(self):
         self.indices = {}
 
     def build_index(self, key: str, entries: list[IndexEntry]):
-        index = annoy.AnnoyIndex(DIMENSIONS, 'angular')
-        for entry in entries:
-            index.add_item(entry.id, entry.embedding)
-        index.build(TREE_COUNT)
-        self.indices[key] = index
+        index = faiss.IndexFlatIP(DIMENSIONS)
+        id_map = []
 
-    def query_index(self, key: str, query_embedding: list[float], max_results: int = 10, min_similarity: float = 0.5) -> list[int]:
+        embeddings = np.array(
+            [entry.embedding for entry in entries], dtype='float32')
+        faiss.normalize_L2(embeddings)
+
+        index.add(embeddings)
+        id_map = [entry.id for entry in entries]
+        self.indices[key] = (index, id_map)
+
+    def query_index(self, key: str, query_embedding: list[float], min_results: int = 2, max_results: int = 10, min_similarity: float = 0.5) -> list[int]:
         if key not in self.indices:
             raise ValueError(f"Index for key {key} not found")
-        results = self.indices[key].get_nns_by_vector(
-            query_embedding, max_results, include_distances=True)
-        return [self.entries[i] for i in results if results[i][1] >= min_similarity]
+
+        index, id_map = self.indices[key]
+        query_vector = np.array([query_embedding], dtype='float32')
+        faiss.normalize_L2(query_vector)
+
+        scores, indices = index.search(query_vector, max_results)
+        results = []
+        for j, (i, score) in enumerate(zip(indices[0], scores[0])):
+            if i == -1:
+                continue
+            if j < min_results or (score >= min_similarity and j < max_results):
+                results.append(id_map[i])
+        return results
 
 
-index_manager = AnnoyIndexManager()
+index_manager = FaissIndexManager()
 
 
 class NoteSearchService:
@@ -57,11 +72,12 @@ class NoteSearchService:
             query = select(Note.id, Note.embedding).where(
                 Note.embedding.is_not(None), Note.user_id == user_id)
             results = session.exec(query).all()
-            index_manager.build_index(f"notes_{user_id}", [IndexEntry(
-                id=id, embedding=embedding) for id, embedding in results])
+            index_manager.build_index(f"notes_{user_id}", [
+                IndexEntry(id=id, embedding=embedding) for id, embedding in results
+            ])
 
-    def search(self, user_id: int, query_embedding: list[float], max_results: int = 10, min_similarity: float = 0.5) -> list[int]:
-        return index_manager.query_index(f"notes_{user_id}", query_embedding, max_results, min_similarity)
+    def search(self, user_id: int, query_embedding: list[float], min_results: int = 2, max_results: int = 10, min_similarity: float = 0.5) -> list[int]:
+        return index_manager.query_index(f"notes_{user_id}", query_embedding, min_results, max_results, min_similarity)
 
 
 search_service = NoteSearchService()

@@ -18,6 +18,9 @@
             <p class="text-gray-400 mt-1">Organize your thoughts and ideas</p>
         </div>
         <div class="flex flex-wrap gap-4">
+            <button id="searchButton" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 font-medium text-lg flex items-center">
+                <i class="fas fa-search mr-2"></i>Search Notes
+            </button>
             <button id="openChat" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg transition-colors duration-200 font-medium text-lg flex items-center">
                 <i class="fas fa-comments mr-2"></i>Open Chat
             </button>
@@ -27,6 +30,15 @@
         </div>
     </div>
     
+    <div id="searchResults" class="mb-6 hidden">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-white">Search Results</h2>
+            <button id="clearSearchResults" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-times mr-2"></i>Clear Search
+            </button>
+        </div>
+    </div>
+
     <div id="notes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Notes will be dynamically inserted here -->
     </div>
@@ -40,6 +52,75 @@
         <button id="nextPage" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
             Next<i class="fas fa-chevron-right ml-2"></i>
         </button>
+    </div>
+</div>
+
+<!-- Search Modal -->
+<div id="searchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-gray-800 rounded-lg shadow-xl p-8 w-full max-w-2xl border border-gray-700">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-bold text-white">Search Notes</h3>
+            <button id="closeSearch" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="mb-6">
+            <p class="text-gray-400 mb-2">Describe what you're looking for in your notes. The search will find semantically similar content.</p>
+            <textarea id="searchQuery" 
+                class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white placeholder-gray-400 min-h-[100px] resize-y mb-6"
+                placeholder="Example: company project deadlines and meetings"></textarea>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-gray-300 mb-2">Minimum Results</label>
+                    <div class="flex items-center space-x-4">
+                        <input type="range" 
+                               id="minResults" 
+                               min="1" 
+                               max="10" 
+                               value="2"
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <span id="minResultsValue" class="text-gray-300 min-w-[3rem] text-right">2</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-300 mb-2">Maximum Results</label>
+                    <div class="flex items-center space-x-4">
+                        <input type="range" 
+                               id="maxResults" 
+                               min="1" 
+                               max="50" 
+                               value="10"
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <span id="maxResultsValue" class="text-gray-300 min-w-[3rem] text-right">10</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-300 mb-2">Minimum Similarity</label>
+                    <div class="flex items-center space-x-4">
+                        <input type="range" 
+                               id="minSimilarity" 
+                               min="0" 
+                               max="100" 
+                               value="30"
+                               class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                        <span id="minSimilarityValue" class="text-gray-300 min-w-[3rem] text-right">30%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-4">
+            <button id="cancelSearch" 
+                class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium text-lg flex items-center">
+                Cancel
+            </button>
+            <button id="performSearch" 
+                class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium text-lg flex items-center">
+                <i class="fas fa-search mr-2"></i>Search
+            </button>
+        </div>
     </div>
 </div>
 
@@ -115,26 +196,30 @@
 
 {% block scripts %}
 <script>
-let notesData = new Map(); // Store notes data for easy access
-const MAX_PREVIEW_LENGTH = 250; // Maximum characters to show in preview
+let notesData = new Map();
+const MAX_PREVIEW_LENGTH = 250;
 let currentPage = 1;
 let totalPages = 1;
 let totalNotes = 0;
+let isSearching = false;
+let searchQuery = '';
+let currentSearchParams = {
+    minResults: 2,
+    maxResults: 10,
+    minSimilarity: 0.3
+};
 
 document.addEventListener('DOMContentLoaded', async function() {
-    // Check authentication status
     try {
         const response = await fetch('/api/me', {
             credentials: 'include'
         });
         
         if (!response.ok) {
-            // If not authenticated, redirect to login page
             window.location.href = '/login';
             return;
         }
         
-        // If authenticated, load notes and setup event listeners
         loadNotes();
         setupEventListeners();
     } catch (error) {
@@ -144,17 +229,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 function setupEventListeners() {
-    // Chat button click handler
+    document.getElementById('searchButton').addEventListener('click', function() {
+        openSearchModal();
+    });
+
     document.getElementById('openChat').addEventListener('click', function() {
         window.open('http://chat.' + window.location.hostname, '_blank');
     });
 
-    // New note button click handler
     document.getElementById('newNote').addEventListener('click', function() {
         openNoteModal();
     });
 
-    // Cancel button click handlers
     document.getElementById('cancelNote').addEventListener('click', closeNoteModal);
     document.getElementById('cancelNoteBtn').addEventListener('click', closeNoteModal);
     document.getElementById('cancelDelete').addEventListener('click', closeDeleteModal);
@@ -162,10 +248,8 @@ function setupEventListeners() {
     document.getElementById('closePreview').addEventListener('click', closePreviewModal);
     document.getElementById('closePreviewBtn').addEventListener('click', closePreviewModal);
 
-    // Save button click handler
     document.getElementById('saveNote').addEventListener('click', handleSaveNote);
 
-    // Close modals when clicking outside
     document.getElementById('noteModal').addEventListener('click', function(e) {
         if (e.target === this) closeNoteModal();
     });
@@ -178,7 +262,6 @@ function setupEventListeners() {
         if (e.target === this) closePreviewModal();
     });
 
-    // Setup note actions delegation
     document.getElementById('notes-container').addEventListener('click', function(e) {
         const button = e.target.closest('button');
         if (!button) return;
@@ -195,7 +278,6 @@ function setupEventListeners() {
         }
     });
 
-    // Pagination event listeners
     document.getElementById('prevPage').addEventListener('click', () => {
         if (currentPage > 1) {
             currentPage--;
@@ -207,6 +289,53 @@ function setupEventListeners() {
         if (currentPage < totalPages) {
             currentPage++;
             loadNotes();
+        }
+    });
+
+    document.getElementById('closeSearch').addEventListener('click', closeSearchModal);
+    document.getElementById('cancelSearch').addEventListener('click', closeSearchModal);
+    document.getElementById('performSearch').addEventListener('click', handleSearch);
+    
+    const minResults = document.getElementById('minResults');
+    const maxResults = document.getElementById('maxResults');
+    const minSimilarity = document.getElementById('minSimilarity');
+    
+    minResults.addEventListener('input', function() {
+        document.getElementById('minResultsValue').textContent = this.value;
+        currentSearchParams.minResults = parseInt(this.value);
+    });
+    
+    maxResults.addEventListener('input', function() {
+        document.getElementById('maxResultsValue').textContent = this.value;
+        currentSearchParams.maxResults = parseInt(this.value);
+    });
+    
+    minSimilarity.addEventListener('input', function() {
+        document.getElementById('minSimilarityValue').textContent = this.value + '%';
+        currentSearchParams.minSimilarity = parseFloat(this.value) / 100;
+    });
+
+    document.getElementById('searchResults').addEventListener('click', function(e) {
+        if (e.target.closest('#clearSearchResults')) {
+            clearSearchResults();
+        } else if (e.target.closest('#findMore')) {
+            const resultsCount = document.querySelector('#searchResults h2').textContent.match(/\d+/)[0];
+            
+            if (parseInt(resultsCount) >= currentSearchParams.maxResults) {
+                currentSearchParams.maxResults = Math.min(50, currentSearchParams.maxResults + 10);
+                document.getElementById('maxResults').value = currentSearchParams.maxResults;
+                document.getElementById('maxResultsValue').textContent = currentSearchParams.maxResults;
+            } else {
+                currentSearchParams.minSimilarity = Math.max(0.1, currentSearchParams.minSimilarity - 0.05);
+                currentSearchParams.minSimilarity = Math.round(currentSearchParams.minSimilarity * 100) / 100;
+                document.getElementById('minSimilarity').value = Math.round(currentSearchParams.minSimilarity * 100);
+                document.getElementById('minSimilarityValue').textContent = Math.round(currentSearchParams.minSimilarity * 100) + '%';
+            }
+            
+            if (window.currentSearchQuery) {
+                document.getElementById('searchQuery').value = window.currentSearchQuery;
+                handleSearch();
+            }
         }
     });
 }
@@ -308,7 +437,87 @@ document.getElementById('confirmDelete').addEventListener('click', async functio
     }
 });
 
+function openSearchModal() {
+    const modal = document.getElementById('searchModal');
+    const searchQuery = document.getElementById('searchQuery');
+    modal.classList.remove('hidden');
+    searchQuery.focus();
+}
+
+function closeSearchModal() {
+    const modal = document.getElementById('searchModal');
+    const searchQuery = document.getElementById('searchQuery');
+    modal.classList.add('hidden');
+    searchQuery.value = '';
+}
+
+function clearSearchResults() {
+    const searchResults = document.getElementById('searchResults');
+    searchResults.classList.add('hidden');
+    isSearching = false;
+    searchQuery = '';
+    currentPage = 1;
+    currentSearchParams = {
+        minResults: 2,
+        maxResults: 10,
+        minSimilarity: 0.3
+    };
+    loadNotes();
+}
+
+async function handleSearch() {
+    const searchQuery = document.getElementById('searchQuery').value.trim();
+    if (!searchQuery) return;
+
+    window.currentSearchQuery = searchQuery;
+
+    try {
+        const response = await fetch(`/api/notes/search/?query=${encodeURIComponent(searchQuery)}&min_results=${currentSearchParams.minResults}&max_results=${currentSearchParams.maxResults}&min_similarity=${currentSearchParams.minSimilarity}`);
+        const notes = await response.json();
+        
+        const container = document.getElementById('notes-container');
+        container.innerHTML = '';
+        
+        notesData.clear();
+        notes.forEach(note => {
+            notesData.set(note.id, note);
+            const noteElement = createNoteElement(note);
+            container.appendChild(noteElement);
+        });
+
+        document.getElementById('pagination').style.display = 'none';
+        
+        const searchResults = document.getElementById('searchResults');
+        searchResults.innerHTML = `
+            <div class="flex flex-col space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-white">Search Results (${notes.length} notes)</h2>
+                    <button id="clearSearchResults" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fas fa-times mr-2"></i>Clear Search
+                    </button>
+                </div>
+                ${currentSearchParams.minSimilarity > 0.1 && currentSearchParams.maxResults < 50 ? `
+                    <button id="findMore" 
+                        class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium text-lg flex items-center self-start">
+                        <i class="fas fa-search-plus mr-2"></i>Find More Results
+                    </button>
+                ` : ''}
+            </div>
+        `;
+        searchResults.classList.remove('hidden');
+        
+        closeSearchModal();
+        
+        isSearching = true;
+    } catch (error) {
+        console.error('Error performing search:', error);
+        alert('Failed to perform search. Please try again.');
+    }
+}
+
 async function loadNotes() {
+    if (isSearching) return;
+    
     try {
         const response = await fetch(`/api/notes/?page=${currentPage}`);
         const data = await response.json();
@@ -316,7 +525,6 @@ async function loadNotes() {
         const container = document.getElementById('notes-container');
         container.innerHTML = '';
         
-        // Clear and rebuild notes data map
         notesData.clear();
         data.notes.forEach(note => {
             notesData.set(note.id, note);
@@ -324,16 +532,13 @@ async function loadNotes() {
             container.appendChild(noteElement);
         });
 
-        // Update pagination
         totalNotes = data.total;
         totalPages = data.total_pages;
         
-        // Update pagination controls
         document.getElementById('prevPage').disabled = currentPage === 1;
         document.getElementById('nextPage').disabled = currentPage === totalPages;
         document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
         
-        // Hide pagination if there's only one page
         document.getElementById('pagination').style.display = totalPages <= 1 ? 'none' : 'flex';
     } catch (error) {
         console.error('Error:', error);
@@ -350,7 +555,6 @@ function createNoteElement(note) {
     div.className = 'note-card bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 relative group border border-gray-700';
     div.dataset.noteId = note.id;
     
-    // Add action buttons that show on hover
     const actions = `
         <div class="absolute top-4 right-4 space-x-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <button class="edit-note text-gray-400 hover:text-white transition-colors" title="Edit note">
@@ -362,7 +566,6 @@ function createNoteElement(note) {
         </div>
     `;
     
-    // Format dates
     const createdDate = new Date(note.created_at).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -374,7 +577,6 @@ function createNoteElement(note) {
         day: 'numeric'
     });
 
-    // Get the text to display (summary or truncated text)
     const displayText = note.summary || note.text;
     const truncatedText = truncateText(displayText, MAX_PREVIEW_LENGTH);
     

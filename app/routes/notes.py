@@ -15,7 +15,7 @@ from ..services.search import search_service
 
 notes_router = APIRouter()
 
-NOTES_PER_PAGE = 15  # Fixed number of notes per page
+NOTES_PER_PAGE = 15
 
 @notes_router.get("/api/notes/", response_model=models.PaginatedResponse)
 async def read_notes(
@@ -23,14 +23,11 @@ async def read_notes(
     current_user: models.User = Depends(get_current_user)
 ):
     with Session(engine) as session:
-        # Get total count
         count_statement = select(models.Note).where(models.Note.user_id == current_user.id)
         total_count = len(session.exec(count_statement).all())
         
-        # Calculate offset from page number
         offset = (page - 1) * NOTES_PER_PAGE
         
-        # Get paginated notes
         statement = select(models.Note).where(models.Note.user_id == current_user.id).offset(offset).limit(NOTES_PER_PAGE)
         notes = session.exec(statement).all()
         
@@ -67,7 +64,6 @@ def update_note_summary(note_id: int, note_text: str):
 
 @notes_router.post("/api/notes/", response_model=models.Note)
 def create_note(note: models.NoteCreate, background_tasks: BackgroundTasks, current_user: models.User = Depends(get_current_user)):
-    """Create a new note"""
     with Session(engine) as session:
         db_note = models.Note(
             text=note.text,
@@ -77,7 +73,7 @@ def create_note(note: models.NoteCreate, background_tasks: BackgroundTasks, curr
         session.commit()
         session.refresh(db_note)
         background_tasks.add_task(update_note_embedding, db_note.id)
-        background_tasks.add_task(update_note_summary, db_note.id)
+        background_tasks.add_task(update_note_summary, db_note.id, note.text)
         return db_note
     
 def get_note(session: Session, note_id: int, user_id: int):
@@ -95,7 +91,6 @@ def get_note(session: Session, note_id: int, user_id: int):
 
 @notes_router.put("/api/notes/{note_id}", response_model=models.Note)
 def update_note(note_id: int, note: models.NoteCreate, background_tasks: BackgroundTasks, current_user: models.User = Depends(get_current_user)):
-    """Update a note"""
     with Session(engine) as session:
         db_note = get_note(session, note_id, current_user.id)
         db_note.text = note.text
@@ -103,14 +98,48 @@ def update_note(note_id: int, note: models.NoteCreate, background_tasks: Backgro
         session.commit()
         session.refresh(db_note)
         background_tasks.add_task(update_note_embedding, db_note.id)
-        background_tasks.add_task(update_note_summary, db_note.id)
+        background_tasks.add_task(update_note_summary, db_note.id, note.text)
         return db_note
 
 @notes_router.delete("/api/notes/{note_id}")
-def delete_note(note_id: int, current_user: models.User = Depends(get_current_user)):
-    """Delete a note"""
+def delete_note(note_id: int, background_tasks: BackgroundTasks, current_user: models.User = Depends(get_current_user)):
     with Session(engine) as session:
         db_note = get_note(session, note_id, current_user.id)
         session.delete(db_note)
         session.commit()
-        return {"message": "Note deleted successfully"} 
+        background_tasks.add_task(search_service.update_user_index, current_user.id)
+        return {"message": "Note deleted successfully"}
+
+@notes_router.get("/api/notes/search/", response_model=List[models.NoteRead])
+async def search_notes(
+    query: str = Query(..., description="The search query"),
+    min_results: int = Query(default=2, ge=1, le=10, description="Minimum number of results to return"),
+    max_results: int = Query(default=10, ge=1, le=50, description="Maximum number of results to return"),
+    min_similarity: float = Query(default=0.3, ge=0.0, le=1.0, description="Minimum similarity score (0-1) after filtering by min_results"),
+    current_user: models.User = Depends(get_current_user)
+):
+    query_embedding = get_embedding(query)
+    
+    try:
+        note_ids = search_service.search(
+            user_id=current_user.id,
+            query_embedding=query_embedding,
+            min_results=min_results,
+            max_results=max_results,
+            min_similarity=min_similarity
+        )
+    except ValueError as e:
+        return []
+    
+    with Session(engine) as session:
+        notes = []
+        for note_id in note_ids:
+            statement = select(models.Note).where(
+                models.Note.id == note_id,
+                models.Note.user_id == current_user.id
+            )
+            note = session.exec(statement).first()
+            if note:
+                notes.append(note)
+        
+        return notes 
