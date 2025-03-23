@@ -17,6 +17,10 @@ def get_chat_completion(messages: list[dict]) -> str:
 
 def get_summary(text: str) -> str:
     return get_chat_completion([
-        {"role": "system", "content": "You are a helpful assistant that summarizes text. Only output the summary, no other text."},
+        {"role": "system", "content": """You are a helpful assistant that summarizes text.
+         Summarize the text in a way that is easy to understand and relevant to the user in 2-3 sentences.
+         The summary should be a single paragraph with no newlines or other formatting.
+         Only output the summary, no other text.
+         """},
         {"role": "user", "content": text}
     ])

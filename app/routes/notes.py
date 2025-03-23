@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
 from sqlmodel import Session, select
 from datetime import datetime, UTC
-from typing import List
+from typing import List, Optional
 
 from ..database import engine
 from .. import models
@@ -14,12 +14,31 @@ from ..services.openai import (
 
 notes_router = APIRouter()
 
-@notes_router.get("/api/notes/", response_model=List[models.NoteRead])
-async def read_notes(current_user: models.User = Depends(get_current_user)):
+NOTES_PER_PAGE = 15  # Fixed number of notes per page
+
+@notes_router.get("/api/notes/", response_model=models.PaginatedResponse)
+async def read_notes(
+    page: int = Query(default=1, ge=1),
+    current_user: models.User = Depends(get_current_user)
+):
     with Session(engine) as session:
-        statement = select(models.Note).where(models.Note.user_id == current_user.id)
+        # Get total count
+        count_statement = select(models.Note).where(models.Note.user_id == current_user.id)
+        total_count = len(session.exec(count_statement).all())
+        
+        # Calculate offset from page number
+        offset = (page - 1) * NOTES_PER_PAGE
+        
+        # Get paginated notes
+        statement = select(models.Note).where(models.Note.user_id == current_user.id).offset(offset).limit(NOTES_PER_PAGE)
         notes = session.exec(statement).all()
-        return notes
+        
+        return {
+            "notes": notes,
+            "total": total_count,
+            "page": page,
+            "total_pages": (total_count + NOTES_PER_PAGE - 1) // NOTES_PER_PAGE
+        }
     
 def update_note_embedding(note_id: int):
     with Session(engine) as session:

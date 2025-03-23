@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel, Field, Relationship, JSON
 from datetime import datetime
 from typing import Optional, List
+from pydantic import BaseModel
 
 class UserBase(SQLModel):
     email: str = Field(unique=True, index=True)
@@ -39,3 +40,15 @@ class NoteCreate(SQLModel):
 class NoteRead(NoteBase):
     id: int
     user_id: int
+
+    class Config:
+        from_attributes = True
+
+class PaginatedResponse(BaseModel):
+    notes: List[NoteRead]
+    total: int
+    page: int
+    total_pages: int
+
+    class Config:
+        from_attributes = True
