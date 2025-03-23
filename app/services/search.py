@@ -73,6 +73,8 @@ class NoteSearchService:
 
             index = {}
             for entry in results:
+                if entry.embedding is None:
+                    continue
                 if entry.user_id not in index:
                     index[entry.user_id] = []
                 index[entry.user_id].append(IndexEntry(
