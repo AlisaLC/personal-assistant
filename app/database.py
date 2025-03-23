@@ -2,12 +2,8 @@ from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
 from sqlalchemy.ext.declarative import declarative_base
-from dotenv import load_dotenv
-import os
 import time
-
-
-load_dotenv()
+import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 WEBUI_DATABASE_URL = os.getenv("WEBUI_DATABASE_URL")
@@ -30,7 +26,3 @@ def get_engine(database_url: str = DATABASE_URL):
 engine = get_engine()
 webui_engine = get_engine(WEBUI_DATABASE_URL)
 Base = declarative_base()
-
-def create_db_and_tables():
-    from . import models
-    models.SQLModel.metadata.create_all(engine)

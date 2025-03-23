@@ -10,6 +10,7 @@ from ..services.openai import (
     get_embedding,
     get_summary,
 )
+from ..services.search import search_service
 
 
 notes_router = APIRouter()
@@ -49,13 +50,17 @@ def update_note_embedding(note_id: int):
             note.updated_at = datetime.now(UTC)
             session.commit()
             session.refresh(note)
+    
+    search_service.update_user_index(note.user_id)
 
-def update_note_summary(note_id: int):
+def update_note_summary(note_id: int, note_text: str):
+    summary = get_summary(note_text)
+
     with Session(engine) as session:
         statement = select(models.Note).where(models.Note.id == note_id)
         note = session.exec(statement).first()
         if note:
-            note.summary = get_summary(note.text)
+            note.summary = summary
             note.updated_at = datetime.now(UTC)
             session.commit()
             session.refresh(note)

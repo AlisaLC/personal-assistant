@@ -1,12 +1,10 @@
 from sqlmodel import Session, select
 import uuid
 from datetime import datetime
-from passlib.context import CryptContext
 
 from ..database import webui_engine
 from ..external_db.webui import WebUIAuth, WebUIUser
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from ..auth import get_password_hash
 
 
 async def create_webui_user(email: str, password: str, name: str) -> bool:
@@ -15,7 +13,7 @@ async def create_webui_user(email: str, password: str, name: str) -> bool:
         if session.exec(statement).first():
             return False
         user_id = str(uuid.uuid4())
-        password_hash = pwd_context.hash(password)
+        password_hash = get_password_hash(password)
         session.add(
             WebUIAuth(
                 id=user_id,
